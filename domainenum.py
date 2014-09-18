@@ -5,7 +5,8 @@ import argparse
 import sys
 import subprocess
 import os
-
+import string
+import random
 
 def list_all_domains(path):
     """
@@ -33,6 +34,8 @@ def verifyDomain():
     #TODO -- perform some type of connectivity test to identify valid hosts
     :return: Boolean specifying whether connectivity test was successful
     '''
+    #TODO
+
     return True
 
 def execute(cmdstr):
@@ -61,6 +64,39 @@ def findSOA(domain):
         soa = soa.split()[4].rstrip(".")
 
     return soa
+
+def subdomaingenerator(size=9, chars=string.ascii_lowercase):
+    '''
+    Function that will return a random string of characters
+    :param size: length of string to return
+    :param chars: characterset to use
+    :return: random string of characters
+    reference: http://stackoverflow.com/questions/2257441/random-string-generation-
+                                                        with-upper-case-letters-and-digits-in-python
+    '''
+    return ''.join(random.choice(chars) for _ in range(size))
+
+def haswildcard(domain, soa):
+    '''
+    Function that will generate random sub-domains and perform lookups. Successful responses indicate a *.domain.tld
+    record is in place - which will make dns enumeration slightly less valuable.
+    :param domain: the domain to test
+    :return: boolean - True: has wildcard  False: no wildcard detected
+
+
+    '''
+
+    #perform 3 tests - if any result in a valid record, return true
+    for i in range(3):
+        sub = subdomaingenerator() + "." + domain
+        #print "Debug: random sub: " + sub  # debug string
+        result = domainLookup(sub, soa)
+        #print "Debug: result: " + result  # debug string
+        if result != 'Not Found':
+            return True
+
+    return False
+
 
 def bruteList(args):
     '''
@@ -95,11 +131,27 @@ def bruteList(args):
         print root.upper() + " address: " + rootrecord
         resultDict[root] = rootrecord
 
+        if args.nowildcard:
+            wildcard = False
+        else:
+            wildcard = haswildcard(root, soa)  # check for wildcard A record
+
+        if wildcard:
+            print "[+] WARNING: Wildcard record found: *." + root
+            print "[+] Only displaying results with A records different from " + root
+
         for sub in sublist:
             subdomain = sub + "." + root
             subrecord = domainLookup(sub + "." + root, soa)
-            print "\t" + sub.upper() + "." + root.upper() + " address " + subrecord
-            resultDict[subdomain] = subrecord
+            if wildcard:
+                if subrecord != rootrecord:
+                    print "\t" + sub.lower() + "." + root.lower() + " record " + subrecord
+                    resultDict[subdomain] = subrecord
+            else:
+                print "\t" + sub.lower() + "." + root.lower() + " record " + subrecord
+                resultDict[subdomain] = subrecord
+
+        print "\n"
 
 
 
@@ -123,13 +175,13 @@ def bruteReverse(args):
         output = execute("host " + str(addr))
 
         if "domain name pointer" in output:
-            if not args.VERIFY:  #The user does not wish to verify connectivity
+            if not args.verify:  #The user does not wish to verify connectivity
                 display = str(addr) + ": " + output.split()[4] + " Unverified"
             elif verifyDomain(): #The user requested a connectivity check
                 display = str(addr) + ": " + output.split()[4] + " Verified"
 
             #Record result
-            if args.VERBOSE:
+            if args.verbose:
                 print display
             f.write(display + "\n")
 
@@ -154,6 +206,10 @@ def main(argv):
     parser.add_argument("--wordlist",
                         help="Brute-force domains based on predefined list",
                         metavar="FILE",
+                        required=False)
+    parser.add_argument("--nowildcard",
+                        help="Disable the wildcard record test",
+                        action="store_true",
                         required=False)
     parser.add_argument("--verify",
                         help="Perform connectivity test for each domain Warning:"
