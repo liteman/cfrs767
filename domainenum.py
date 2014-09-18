@@ -1,3 +1,4 @@
+#!/usr/bin/python
 __author__ = 'liteman'
 
 from netaddr import *
@@ -17,9 +18,13 @@ def list_all_domains(path):
     """
 
     domainlist = []
-    if os.path.exists(os.path.abspath(path)):
+    if os.path.exists(path):
         f = open(path, 'r')
         for domain in f.readlines():
+            domain = domain.strip()
+            #print "Debug: domain is -" + domain + "- end line."  # debug string
+            if domain == '':
+                continue
             domainlist.append(domain.strip())
         f.close()
 
@@ -108,6 +113,7 @@ def bruteList(args):
 
     if not args.wordlist:
         print "Error: No wordlist specified. Please use --wordlist"
+        sys.exit(1)
 
     if args.verbose:
         print "Debug: Domain specified: " + args.domain
@@ -147,7 +153,7 @@ def bruteList(args):
                 if subrecord != rootrecord:
                     print "\t" + sub.lower() + "." + root.lower() + " record " + subrecord
                     resultDict[subdomain] = subrecord
-            else:
+            elif subrecord != "Not Found":
                 print "\t" + sub.lower() + "." + root.lower() + " record " + subrecord
                 resultDict[subdomain] = subrecord
 
@@ -192,8 +198,7 @@ def bruteReverse(args):
 
 def main(argv):
 
-    parser = argparse.ArgumentParser(description="Testing the netaddr library to "
-                                                 "manipulate IP addresses", add_help=True)
+    parser = argparse.ArgumentParser(description="Enumerate hosts through DNS", add_help=True)
 
     parser.add_argument("--CIDR",
                         help="Specify CIDR range (e.g 192.168.1.0/24)",
