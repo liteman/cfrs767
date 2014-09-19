@@ -8,6 +8,23 @@ import subprocess
 import os
 import string
 import random
+import time
+
+random.seed(time.localtime())
+
+servlist = ["",  # empty will force the use of the locally configured DNS
+            "4.2.2.2",  # level 3
+            "8.8.8.8",  # google
+            "8.8.4.4",  # google
+            "",
+            "208.67.222.222",  # OpenDNS Home
+            "156.154.70.1",  # DNS Advantage
+            "195.46.39.39",  # SafeDNS
+            "8.26.56.26",  # Comodo Secure DNS
+            "64.7.11.2",  # megapath East Coast Primary
+            "208.67.220.220"]  # OpenDNS
+
+
 
 def list_all_domains(path):
     """
@@ -81,7 +98,7 @@ def subdomaingenerator(size=9, chars=string.ascii_lowercase):
     '''
     return ''.join(random.choice(chars) for _ in range(size))
 
-def haswildcard(domain, soa):
+def haswildcard(domain):
     '''
     Function that will generate random sub-domains and perform lookups. Successful responses indicate a *.domain.tld
     record is in place - which will make dns enumeration slightly less valuable.
@@ -95,7 +112,7 @@ def haswildcard(domain, soa):
     for i in range(3):
         sub = subdomaingenerator() + "." + domain
         #print "Debug: random sub: " + sub  # debug string
-        result = domainLookup(sub, soa)
+        result = domainLookup(sub, servlist[1])
         #print "Debug: result: " + result  # debug string
         if result != 'Not Found':
             return True
@@ -147,8 +164,11 @@ def bruteList(args):
             print "[+] Only displaying results with A records different from " + root
 
         for sub in sublist:
+            num = random.choice(range(len(servlist)))  # pick a random number as a selector for a server from servlist[]
+            #print "DEBUG: Random number: " + str(num)
+            #print "DEBUG: Using server: " + servlist[num]
             subdomain = sub + "." + root
-            subrecord = domainLookup(sub + "." + root, soa)
+            subrecord = domainLookup(sub + "." + root, servlist[num])  # perform lookup using specified server
             if wildcard:
                 if subrecord != rootrecord:
                     print "\t" + sub.lower() + "." + root.lower() + " record " + subrecord
