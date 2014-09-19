@@ -24,9 +24,6 @@ optional arguments:
                         Enumerate the specified domain or list of domains
   --wordlist FILE       Brute-force domains based on predefined list
   --nowildcard          Disable the wildcard record test
-  --verify              Perform connectivity test for each domain Warning:
-                        Setting this flag will cause traffic to be sent to the
-                        target domain(s)
   -v, --verbose         Displays additional output
 
 
