@@ -1,6 +1,7 @@
 #!/usr/bin/python
 __author__ = 'liteman'
 
+
 from netaddr import *
 import argparse
 import sys
@@ -51,15 +52,6 @@ def list_all_domains(path):
         domainlist.append(path)
     return domainlist
 
-def verifyDomain():
-    '''
-    #TODO -- perform some type of connectivity test to identify valid hosts
-    :return: Boolean specifying whether connectivity test was successful
-    '''
-    #TODO
-
-    return True
-
 def execute(cmdstr):
 
     cmd = subprocess.Popen(cmdstr, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -98,22 +90,18 @@ def subdomaingenerator(size=9, chars=string.ascii_lowercase):
     '''
     return ''.join(random.choice(chars) for _ in range(size))
 
-def haswildcard(domain):
+def haswildcard(domain, soa):
     '''
     Function that will generate random sub-domains and perform lookups. Successful responses indicate a *.domain.tld
     record is in place - which will make dns enumeration slightly less valuable.
     :param domain: the domain to test
     :return: boolean - True: has wildcard  False: no wildcard detected
-
-
     '''
 
     #perform 3 tests - if any result in a valid record, return true
     for i in range(3):
         sub = subdomaingenerator() + "." + domain
-        #print "Debug: random sub: " + sub  # debug string
         result = domainLookup(sub, servlist[1])
-        #print "Debug: result: " + result  # debug string
         if result != 'Not Found':
             return True
 
@@ -201,10 +189,7 @@ def bruteReverse(args):
         output = execute("host " + str(addr))
 
         if "domain name pointer" in output:
-            if not args.verify:  #The user does not wish to verify connectivity
-                display = str(addr) + ": " + output.split()[4] + " Unverified"
-            elif verifyDomain(): #The user requested a connectivity check
-                display = str(addr) + ": " + output.split()[4] + " Verified"
+            display = str(addr) + ": " + output.split()[4]
 
             #Record result
             if args.verbose:
@@ -234,12 +219,6 @@ def main(argv):
                         required=False)
     parser.add_argument("--nowildcard",
                         help="Disable the wildcard record test",
-                        action="store_true",
-                        required=False)
-    parser.add_argument("--verify",
-                        help="Perform connectivity test for each domain Warning:"
-                             " Setting this flag will cause traffic to be sent to "
-                             "the target domain(s)",
                         action="store_true",
                         required=False)
     parser.add_argument("-v", "--verbose",
