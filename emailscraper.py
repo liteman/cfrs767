@@ -101,8 +101,6 @@ def main(argv):
 
     args = parser.parse_args()
 
-    if args.verbose:
-        print "-v flag set. Debugging on.\n"
 
     beginscrape(args)
 
