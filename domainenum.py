@@ -100,9 +100,19 @@ def haswildcard(domain, soa):
     :return: boolean - True: has wildcard  False: no wildcard detected
     '''
 
-    sub = subdomaingenerator() + "." + domain
-    result = domainLookup(sub, servlist[1])
-    if result != 'Not Found':
+    counter = 0
+    wildcardlist = []
+    for i in range(3):
+        sub = subdomaingenerator() + "." + domain
+        result = domainLookup(sub, servlist[1])
+        if result != 'Not Found':
+            counter += 1
+            wildcardlist.append(result)
+
+    if counter > 1:  # 2 out of 3 successful tests
+        print "Wildcard Tests: "
+        for dom in wildcardlist:  # print the successful wildcard queries
+            print "\t" + dom
         return True
 
     return False
@@ -133,14 +143,12 @@ def bruteList(args):
 
     #loop through root domain list (--domain) and for each sub-domain look for valid A records
     for root in rootlist:
-        resultDict = {}
 
         soa = findSOA(root)  # find SOA for root domain
         print root.upper() + " SOA is: " + soa
 
         rootrecord = domainLookup(root, soa)  # find A record for root domain - use SOA name server if possible
         print root.upper() + " address: " + rootrecord
-        resultDict[root] = rootrecord
 
         if args.nowildcard:
             wildcard = False
@@ -156,14 +164,13 @@ def bruteList(args):
             #print "DEBUG: Random number: " + str(num)
             #print "DEBUG: Using server: " + servlist[num]
             subdomain = sub + "." + root
-            subrecord = domainLookup(sub + "." + root, servlist[num])  # perform lookup using specified server
+            subrecord = domainLookup(subdomain, servlist[num])  # perform lookup using specified server
             if wildcard:
                 if subrecord != rootrecord:
                     print "\t" + sub.lower() + "." + root.lower() + " record " + subrecord
-                    resultDict[subdomain] = subrecord
             elif subrecord != "Not Found":
                 print "\t" + sub.lower() + "." + root.lower() + " record " + subrecord
-                resultDict[subdomain] = subrecord
+
 
         print "\n"
 
