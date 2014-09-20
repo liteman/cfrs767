@@ -91,16 +91,12 @@ def beginscrape(args):
 
 def main(argv):
 
-    parser = argparse.ArgumentParser(description="Enumerate hosts through DNS", add_help=True)
+    parser = argparse.ArgumentParser(description="Scrape e-mail addresses from web pages", add_help=True)
 
     parser.add_argument("--url",
                         help="Enumerate the specified URL or list of URLs -- must be in the from http://dom.tld/page",
                         metavar="URL or FILE",
                         required=True)
-    parser.add_argument("-v", "--verbose",
-                        help="Displays additional output",
-                        action="store_true",
-                        required=False)
 
 
     args = parser.parse_args()
