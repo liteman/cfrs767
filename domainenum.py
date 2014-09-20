@@ -86,24 +86,24 @@ def subdomaingenerator(size=9, chars=string.ascii_lowercase):
     :param chars: characterset to use
     :return: random string of characters
     reference: http://stackoverflow.com/questions/2257441/random-string-generation-
-                                                        with-upper-case-letters-and-digits-in-python
+                                        with-upper-case-letters-and-digits-in-python
     '''
+
     return ''.join(random.choice(chars) for _ in range(size))
 
 def haswildcard(domain, soa):
     '''
-    Function that will generate random sub-domains and perform lookups. Successful responses indicate a *.domain.tld
-    record is in place - which will make dns enumeration slightly less valuable.
+    Function that will generate random sub-domains and perform lookups. Successful
+    responses indicate a *.domain.tld record is in place - which will cloud
+    enumeration results.
     :param domain: the domain to test
     :return: boolean - True: has wildcard  False: no wildcard detected
     '''
 
-    #perform 3 tests - if any result in a valid record, return true
-    for i in range(3):
-        sub = subdomaingenerator() + "." + domain
-        result = domainLookup(sub, servlist[1])
-        if result != 'Not Found':
-            return True
+    sub = subdomaingenerator() + "." + domain
+    result = domainLookup(sub, servlist[1])
+    if result != 'Not Found':
+        return True
 
     return False
 
