@@ -94,7 +94,7 @@ def main(argv):
     parser = argparse.ArgumentParser(description="Scrape e-mail addresses from web pages", add_help=True)
 
     parser.add_argument("--url",
-                        help="Enumerate the specified URL or list of URLs -- must be in the from http://dom.tld/page",
+                        help="Enumerate the specified URL or list of URLs",
                         metavar="URL or FILE",
                         required=True)
 
