@@ -2,12 +2,9 @@
 __author__ = 'liteman'
 
 
-from netaddr import *
 import argparse
 import sys
-import subprocess
 import os
-import string
 import urllib2
 import re
 
@@ -35,11 +32,6 @@ def list_all_urls(path):
     else:
         urllist.append(path)
     return urllist
-
-def execute(cmdstr):
-
-    cmd = subprocess.Popen(cmdstr, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    return cmd.stdout.readline().decode("ASCII").rstrip()  # expected output is only one line in length
 
 def dedup(duplist):
     nodups = []
