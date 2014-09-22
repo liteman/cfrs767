@@ -24,8 +24,8 @@ servlist = ["",  # empty will force the use of the locally configured DNS
             "64.7.11.2",  # megapath East Coast Primary
             "208.67.220.220"]  # OpenDNS
 
-rezolver = dns.resolver.Resolver()
-rezolver.nameservers = servlist
+rezolver = dns.resolver.Resolver()  # create a resolver object
+rezolver.nameservers = servlist     # specify nameserver to use
 
 
 def list_all_domains(path):
@@ -62,7 +62,13 @@ def execute(cmdstr):
 
 def domainLookup(domain):
     global servlist
+    global rezolver
+
+    # Resolver tries each nameserver in order. Shuffle server list in order to randomize queries
+    # This will *hopefully* avoid hitting rate-limits
     random.shuffle(servlist)
+    rezolver.nameservers = servlist
+
     #find A record with command: host <domain> <soa server> | grep "has address"
     #Sample output: gmu.edu has address 129.174.1.38
     #arecord = execute("host " + domain + " " + server + " | grep 'has address'")
@@ -85,7 +91,7 @@ def findSOA(domain):
     # sample output:
     # gmu.edu has SOA record magda.gmu.edu. dnsadmin.gmu.edu. 2009036937 10800 3601 604800 86400
     #soa = execute("host -C " + domain + " | grep -m 1 SOA")
-    random.shuffle(servlist)
+
     try:
         answer = rezolver.query(domain, rdtype="SOA")
         soa = str(answer.rrset).split()[4].rstrip('.')
