@@ -5,11 +5,11 @@ __author__ = 'liteman'
 from netaddr import *
 import argparse
 import sys
-import subprocess
 import os
 import string
 import random
 import time
+import dns.resolver
 
 random.seed(time.localtime())
 
@@ -21,10 +21,11 @@ servlist = ["",  # empty will force the use of the locally configured DNS
             "208.67.222.222",  # OpenDNS Home
             "156.154.70.1",  # DNS Advantage
             "195.46.39.39",  # SafeDNS
-            "8.26.56.26",  # Comodo Secure DNS
             "64.7.11.2",  # megapath East Coast Primary
             "208.67.220.220"]  # OpenDNS
 
+rezolver = dns.resolver.Resolver()
+rezolver.nameservers = servlist
 
 
 def list_all_domains(path):
@@ -52,30 +53,44 @@ def list_all_domains(path):
         domainlist.append(path)
     return domainlist
 
+'''
 def execute(cmdstr):
 
     cmd = subprocess.Popen(cmdstr, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return cmd.stdout.readline().decode("ASCII").rstrip()
+'''
 
-def domainLookup(domain, server=""):
-
+def domainLookup(domain):
+    global servlist
+    random.shuffle(servlist)
     #find A record with command: host <domain> <soa server> | grep "has address"
     #Sample output: gmu.edu has address 129.174.1.38
-    arecord = execute("host " + domain + " " + server + " | grep 'has address'")
+    #arecord = execute("host " + domain + " " + server + " | grep 'has address'")
+    try:
+        #print "Debug using server: " + servlist[0]
+        answer = rezolver.query(domain)
+        arecord = str(answer.rrset).split()[4].rstrip('.')
+    except (dns.resolver.NXDOMAIN, dns.resolver.Timeout) as e:
+        arecord = ''  #TODO a ns timeout should be handled better in the future (query a different server in the list)
+
     if arecord == '':
         return "Not Found"
     else:
-        return arecord.split()[-1]
+        return arecord
 
 def findSOA(domain):
+    global servlist
+
     #find SOA for root: host -C <root domain> | grep -m 1 SOA
     # sample output:
     # gmu.edu has SOA record magda.gmu.edu. dnsadmin.gmu.edu. 2009036937 10800 3601 604800 86400
-    soa = execute("host -C " + domain + " | grep -m 1 SOA")
-    if soa == '':
-        return soa
-    else:
-        soa = soa.split()[4].rstrip(".")
+    #soa = execute("host -C " + domain + " | grep -m 1 SOA")
+    random.shuffle(servlist)
+    try:
+        answer = rezolver.query(domain, rdtype="SOA")
+        soa = str(answer.rrset).split()[4].rstrip('.')
+    except dns.resolver.Timeout, dns.resolver.NXDOMAIN:
+        soa = ''
 
     return soa
 
@@ -104,7 +119,8 @@ def haswildcard(domain, soa):
     wildcardlist = []
     for i in range(3):
         sub = subdomaingenerator() + "." + domain
-        result = domainLookup(sub, servlist[1])
+        #print "Debug sub: " + sub
+        result = domainLookup(sub)
         if result != 'Not Found':
             counter += 1
             wildcardlist.append(result)
@@ -147,7 +163,7 @@ def bruteList(args):
         soa = findSOA(root)  # find SOA for root domain
         print root.upper() + " SOA is: " + soa
 
-        rootrecord = domainLookup(root, soa)  # find A record for root domain - use SOA name server if possible
+        rootrecord = domainLookup(root)  # find A record for root domain - use SOA name server if possible
         print root.upper() + " address: " + rootrecord
 
         if args.nowildcard:
@@ -164,7 +180,7 @@ def bruteList(args):
             #print "DEBUG: Random number: " + str(num)
             #print "DEBUG: Using server: " + servlist[num]
             subdomain = sub + "." + root
-            subrecord = domainLookup(subdomain, servlist[num])  # perform lookup using specified server
+            subrecord = domainLookup(subdomain)  # perform lookup using specified server
             if wildcard:
                 if subrecord != rootrecord:
                     print "\t" + sub.lower() + "." + root.lower() + " record " + subrecord
@@ -180,6 +196,7 @@ def bruteList(args):
 
 
 def bruteReverse(args):
+    global servlist
     '''
 
     :param args: Contains list of command-line arguments
@@ -192,16 +209,21 @@ def bruteReverse(args):
     ip = IPNetwork(ipnet)
     f = open("dnsenumResults.txt", 'w')
     for addr in ip:
+        random.shuffle(servlist)
+        revaddr = dns.reversename.from_address(str(addr))
+        #output = execute("host " + str(addr))
+        try:
+            answer = rezolver.query(revaddr, "PTR")
+            stranswer = str(answer.rrset).split()[4].rstrip('.')
+        except dns.resolver.NXDOMAIN:
+            continue
 
-        output = execute("host " + str(addr))
-
-        if "domain name pointer" in output:
-            display = str(addr) + ": " + output.split()[4]
+        display = str(addr) + ": " + stranswer
 
             #Record result
-            if args.verbose:
-                print display
-            f.write(display + "\n")
+        if args.verbose:
+            print display
+        f.write(display + "\n")
 
     f.close()
 
