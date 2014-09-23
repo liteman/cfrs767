@@ -13,13 +13,10 @@ import dns.resolver
 
 random.seed(time.localtime())
 
-servlist = ["",  # empty will force the use of the locally configured DNS
-            "4.2.2.2",  # level 3
+servlist = ["4.2.2.2",  # level 3
             "8.8.8.8",  # google
             "8.8.4.4",  # google
-            "",
             "208.67.222.222",  # OpenDNS Home
-            "156.154.70.1",  # DNS Advantage
             "195.46.39.39",  # SafeDNS
             "64.7.11.2",  # megapath East Coast Primary
             "208.67.220.220"]  # OpenDNS
@@ -76,8 +73,8 @@ def domainLookup(domain):
         #print "Debug using server: " + servlist[0]
         answer = rezolver.query(domain)
         arecord = str(answer.rrset).split()[4].rstrip('.')
-    except (dns.resolver.NXDOMAIN, dns.resolver.Timeout) as e:
-        arecord = ''  #TODO a ns timeout should be handled better in the future (query a different server in the list)
+    except (dns.resolver.NXDOMAIN, dns.resolver.Timeout, dns.resolver.NoAnswer) as e:
+        arecord = ''  #TODO timeout and NoAnswer should be handled better (query a different server in the list)
 
     if arecord == '':
         return "Not Found"
@@ -87,11 +84,7 @@ def domainLookup(domain):
 def findSOA(domain):
     global servlist
 
-    #find SOA for root: host -C <root domain> | grep -m 1 SOA
-    # sample output:
-    # gmu.edu has SOA record magda.gmu.edu. dnsadmin.gmu.edu. 2009036937 10800 3601 604800 86400
-    #soa = execute("host -C " + domain + " | grep -m 1 SOA")
-
+    #find SOA for root
     try:
         answer = rezolver.query(domain, rdtype="SOA")
         soa = str(answer.rrset).split()[4].rstrip('.')
@@ -112,7 +105,7 @@ def subdomaingenerator(size=9, chars=string.ascii_lowercase):
 
     return ''.join(random.choice(chars) for _ in range(size))
 
-def haswildcard(domain, soa):
+def haswildcard(domain):
     '''
     Function that will generate random sub-domains and perform lookups. Successful
     responses indicate a *.domain.tld record is in place - which will cloud
@@ -125,11 +118,10 @@ def haswildcard(domain, soa):
     wildcardlist = []
     for i in range(3):
         sub = subdomaingenerator() + "." + domain
-        #print "Debug sub: " + sub
         result = domainLookup(sub)
         if result != 'Not Found':
             counter += 1
-            wildcardlist.append(result)
+            wildcardlist.append(sub + ": " + result)
 
     if counter > 1:  # 2 out of 3 successful tests
         print "Wildcard Tests: "
@@ -175,7 +167,7 @@ def bruteList(args):
         if args.nowildcard:
             wildcard = False
         else:
-            wildcard = haswildcard(root, soa)  # check for wildcard A record
+            wildcard = haswildcard(root)  # check for wildcard A record
 
         if wildcard:
             print "[+] WARNING: Wildcard record found: *." + root
