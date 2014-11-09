@@ -46,6 +46,7 @@ def getCookie(url, verbose=False):
     """
     Make an initial request to the specified URL and capture the assigned cookie
     :return: string containing the established cookie
+
     """
     if verbose:
         print "DEBUG: Retrieving cookie"
