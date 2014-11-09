@@ -81,10 +81,11 @@ def foundSQLErrors(webtext, verbose):
 
     return False
 
-def getFormInfo(webtext, verbose, method=False, fields=False):
+def getFormInfo(webtext, formid, verbose, method=False, fields=False):
     '''
 
     :param webtext: HTML page as a string
+    :param formid: In case of multiple forms, formid specifies which from to read
     :param verbose: Specified level of debugging
     :param method: Boolean value. If true, return the form submission method (GET or POST)
     :param fields: Boolean value. If true, return the input fields in the form
@@ -94,7 +95,7 @@ def getFormInfo(webtext, verbose, method=False, fields=False):
         print "[DEBUG] Entered getFormInfo() function"
     form_page = fromstring(webtext)
     try:
-        form = form_page.forms[0]  # for this assignment, assume exactly one form exists on the page
+        form = form_page.forms[formid]  # for this assignment, assume exactly one form exists on the page
     except IndexError:
         print "No HTML form detected on the page. Check the specified URL and try again"
         sys.exit(1)
@@ -186,19 +187,25 @@ def runBruteForce(url, cookie, verbose=False):
     initreq = requests.get(url, cookies=cookie)
     webtext = initreq.text
 
-    # identify form method and input fields
-    method, allfields = getFormInfo(webtext, verbose, method=True, fields=True)
+    #determine number of forms on the page
+    form_page = fromstring(webtext)
+    numforms = len(form_page.forms)
 
-    # identify testable fields
-    testable = getTestableFields(allfields, verbose)
+    #brute force each form on the page
+    for i in range(numforms):
+        # identify form method and input fields
+        method, allfields = getFormInfo(webtext, i, verbose, method=True, fields=True)
 
-    #For each testable field, call function to try each sqli string
-    for candidate in testable:
-        print "\tTesting field: " + candidate
-        successList = trySQLI(url, candidate, allfields, testable, cookie, method, verbose)
-        if len(successList) > 0:  # potential SQLI found
-            for item in successList:
-                print "\t\t[-]Potential SQL injection with: " + item
+        # identify testable fields
+        testable = getTestableFields(allfields, verbose)
+
+        #For each testable field, call function to try each sqli string
+        for candidate in testable:
+            print "\tTesting field: " + candidate
+            successList = trySQLI(url, candidate, allfields, testable, cookie, method, verbose)
+            if len(successList) > 0:  # potential SQLI found
+                for item in successList:
+                    print "\t\t[-]Potential SQL injection with: " + item
 
 
 def formatCookie(cookieStr):
